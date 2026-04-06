@@ -203,7 +203,8 @@ type NotifState = {
   type: NotifType;
 } | null;
 
-const api = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
+const isLocalDev = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+const api = import.meta.env.VITE_API_URL?.trim() || (isLocalDev ? "http://localhost:4000" : "https://innova-sphere.onrender.com");
 const SKILL_OPTIONS = [
   "JavaScript",
   "Python",
