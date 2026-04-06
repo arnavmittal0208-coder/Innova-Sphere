@@ -891,26 +891,79 @@ export function App() {
   const saveProfile = async () => {
     if (!jwtToken || !currentUser?._id) return;
     await withError(async () => {
+      const toCsvArray = (value: string): string[] =>
+        value
+          .split(",")
+          .map((v) => v.trim())
+          .filter(Boolean);
+
+      const equalStringArrays = (a: string[] = [], b: string[] = []): boolean => {
+        if (a.length !== b.length) return false;
+        return a.every((item, index) => item === b[index]);
+      };
+
+      const trimmedName = editName.trim();
+      const trimmedGithub = editGithub.trim();
+      const trimmedLinkedin = editLinkedin.trim();
+      const trimmedRole = editRole.trim();
+
+      const nextTechSkills = toCsvArray(editSkillCsv).map((v) => v.toLowerCase());
+      const nextInterests = toCsvArray(editInterestsCsv);
+      const nextHackathonHistory = toCsvArray(editHackathonCsv);
+
+      const currentTechSkills = (currentUser.skills?.tech ?? []).map((v) => v.trim().toLowerCase());
+      const currentInterests = (currentUser.interests ?? []).map((v) => v.trim());
+      const currentHackathonHistory = (currentUser.hackathonHistory ?? []).map((v) => v.trim());
+      const currentPrimaryRole = (currentUser.preferredRoles?.[0] ?? "").trim();
+
+      const payload: Record<string, unknown> = {};
+
+      if (trimmedName && trimmedName !== currentUser.name) {
+        payload.name = trimmedName;
+      }
+
+      if (trimmedLinkedin !== (currentUser.linkedinUrl ?? "")) {
+        payload.linkedinUrl = trimmedLinkedin;
+      }
+
+      if (trimmedGithub !== (currentUser.githubUrl ?? "")) {
+        payload.githubUrl = trimmedGithub;
+      }
+
+      if (editExperience !== (currentUser.experienceLevel ?? "beginner")) {
+        payload.experienceLevel = editExperience;
+      }
+
+      if (trimmedRole !== currentPrimaryRole) {
+        payload.preferredRoles = trimmedRole ? [trimmedRole] : [];
+      }
+
+      if (!equalStringArrays(nextInterests, currentInterests)) {
+        payload.interests = nextInterests;
+      }
+
+      if (!equalStringArrays(nextHackathonHistory, currentHackathonHistory)) {
+        payload.hackathonHistory = nextHackathonHistory;
+      }
+
+      if (!equalStringArrays(nextTechSkills, currentTechSkills)) {
+        payload.skills = {
+          tech: nextTechSkills,
+          soft: currentUser.skills?.soft ?? [],
+          domains: currentUser.skills?.domains ?? []
+        };
+      }
+
+      if (!Object.keys(payload).length) {
+        showNotif("No changes to save", "success");
+        setShowProfileModal(false);
+        return;
+      }
+
       await request(`/users/${currentUser._id}`, {
         method: "PATCH",
         headers: authHeaders,
-        body: JSON.stringify({
-          name: editName,
-          skills: {
-            tech: editSkillCsv
-              .split(",")
-              .map((v) => v.trim().toLowerCase())
-              .filter(Boolean),
-            soft: ["communication"],
-            domains: [editRole || "general"]
-          },
-          preferredRoles: [editRole || "developer"],
-          experienceLevel: editExperience,
-          interests: editInterestsCsv.split(",").map((v) => v.trim()).filter(Boolean),
-          hackathonHistory: editHackathonCsv.split(",").map((v) => v.trim()).filter(Boolean),
-          githubUrl: editGithub,
-          linkedinUrl: editLinkedin
-        })
+        body: JSON.stringify(payload)
       });
       await loadMe();
       setShowProfileModal(false);
