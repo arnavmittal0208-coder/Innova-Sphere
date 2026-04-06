@@ -75,6 +75,45 @@ type Suggestion = {
   matchPercent: number;
 };
 
+const SAMPLE_SUGGESTIONS: Suggestion[] = [
+  {
+    userId: "sample-01",
+    name: "Aanya Verma",
+    rankScore: 84,
+    coreLanguage: "TypeScript",
+    preferredRole: "Frontend Developer",
+    experienceLevel: "advanced",
+    topTechSkills: ["React", "Tailwind", "Framer Motion"],
+    githubUrl: "https://github.com/",
+    linkedinUrl: "https://linkedin.com/",
+    matchPercent: 94
+  },
+  {
+    userId: "sample-02",
+    name: "Rahul Mehta",
+    rankScore: 79,
+    coreLanguage: "Node.js",
+    preferredRole: "Backend Developer",
+    experienceLevel: "intermediate",
+    topTechSkills: ["Express", "MongoDB", "Sockets"],
+    githubUrl: "https://github.com/",
+    linkedinUrl: "https://linkedin.com/",
+    matchPercent: 89
+  },
+  {
+    userId: "sample-03",
+    name: "Sara Khan",
+    rankScore: 76,
+    coreLanguage: "Figma",
+    preferredRole: "UI/UX Designer",
+    experienceLevel: "advanced",
+    topTechSkills: ["UI Systems", "Prototyping", "Design Ops"],
+    githubUrl: "https://github.com/",
+    linkedinUrl: "https://linkedin.com/",
+    matchPercent: 86
+  }
+];
+
 type RankedOpenTeam = {
   teamId: string;
   teamName: string;
@@ -501,28 +540,30 @@ export function App() {
     return rows.sort((a, b) => b.points - a.points);
   }, [currentUser, suggestions]);
 
+  const activeDeckSuggestions = suggestions.length ? suggestions : SAMPLE_SUGGESTIONS;
+
   useEffect(() => {
-    if (!suggestions.length) {
+    if (!activeDeckSuggestions.length) {
       setDeckStart(0);
       setDeckDragX(0);
       setDeckAnimating(null);
       return;
     }
 
-    setDeckStart((prev) => prev % suggestions.length);
-  }, [suggestions.length]);
+    setDeckStart((prev) => prev % activeDeckSuggestions.length);
+  }, [activeDeckSuggestions.length]);
 
   const deckSuggestions = useMemo(() => {
-    if (!suggestions.length) return [];
-    return [...suggestions.slice(deckStart), ...suggestions.slice(0, deckStart)];
-  }, [suggestions, deckStart]);
+    if (!activeDeckSuggestions.length) return [];
+    return [...activeDeckSuggestions.slice(deckStart), ...activeDeckSuggestions.slice(0, deckStart)];
+  }, [activeDeckSuggestions, deckStart]);
 
   const cycleDeck = (direction: "left" | "right") => {
-    if (!suggestions.length || deckAnimating) return;
+    if (!activeDeckSuggestions.length || deckAnimating) return;
 
     setDeckAnimating(direction);
     setTimeout(() => {
-      setDeckStart((prev) => (prev + 1) % suggestions.length);
+      setDeckStart((prev) => (prev + 1) % activeDeckSuggestions.length);
       setDeckAnimating(null);
       setDeckDragX(0);
     }, 260);
@@ -1988,6 +2029,7 @@ export function App() {
           <div className="section-title">
             <span className="dot" /> Add Dev Friend
           </div>
+          {!suggestions.length && <div className="deck-hint">Showing sample profiles until live matches load.</div>}
           <div className="teammate-deck-wrap">
             <div className="teammate-deck" aria-label="Suggested teammates card deck">
               {deckSuggestions.slice(0, 3).map((s, index) => {
@@ -2030,6 +2072,7 @@ export function App() {
                     <div className="deck-role">{s.preferredRole ?? "Recommended Developer"}</div>
                     <div className="deck-meta">Core: {s.coreLanguage ?? "Not specified"} • Level: {s.experienceLevel ?? "beginner"}</div>
                     <div className="deck-id">ID: {s.userId}</div>
+                    {!suggestions.length && <div className="deck-sample-tag">Sample profile</div>}
                     <div className="deck-skill-row">
                       <span className="deck-skill">Match {s.matchPercent}%</span>
                       <span className="deck-skill">Rank {s.rankScore}</span>
@@ -2082,7 +2125,6 @@ export function App() {
                 );
               })}
             </div>
-            {!suggestions.length && <div className="ghost-row">No suggestions yet. Open a team to load real matches.</div>}
           </div>
         </div>
 

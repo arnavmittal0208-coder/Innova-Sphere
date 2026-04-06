@@ -694,6 +694,14 @@ nav {
   color: var(--success);
 }
 
+.deck-hint {
+  margin-top: -4px;
+  margin-bottom: 12px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text2);
+}
+
 .teammate-deck-wrap {
   display: flex;
   justify-content: center;
@@ -786,6 +794,16 @@ nav {
   color: var(--text3);
   opacity: 0.9;
   word-break: break-all;
+}
+
+.deck-sample-tag {
+  margin-bottom: 12px;
+  padding: 4px 10px;
+  border-radius: 99px;
+  font-size: 11px;
+  color: var(--accent3);
+  background: rgba(124, 106, 247, 0.12);
+  border: 1px solid rgba(124, 106, 247, 0.18);
 }
 
 .deck-skill-row {
