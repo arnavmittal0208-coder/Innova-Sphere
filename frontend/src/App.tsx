@@ -317,8 +317,8 @@ export function App() {
   const [error, setError] = useState("");
   const [notif, setNotif] = useState<NotifState>(null);
 
-  const [loginEmail, setLoginEmail] = useState("priya@iit.ac.in");
-  const [loginPassword, setLoginPassword] = useState("123456");
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
 
   const [signupName, setSignupName] = useState("Dev User");
   const [signupEmail, setSignupEmail] = useState("new@devmatch.io");
@@ -1704,17 +1704,34 @@ export function App() {
           </div>
 
           {authTab === "login" && (
-            <div>
+            <form autoComplete="off" onSubmit={(e) => { e.preventDefault(); void doLogin(); }}>
               <div className="form-group">
                 <label>Email</label>
-                <input value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} placeholder="you@college.edu" type="email" />
+                <input
+                  name="devmatch-login-email"
+                  autoComplete="off"
+                  spellCheck={false}
+                  inputMode="email"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  placeholder="you@college.edu"
+                  type="text"
+                />
               </div>
               <div className="form-group">
                 <label>Password</label>
-                <input value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} placeholder="********" type="password" />
+                <input
+                  name="devmatch-login-password"
+                  autoComplete="off"
+                  data-form-type="other"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  placeholder="********"
+                  type="password"
+                />
               </div>
-              <button className="btn-primary" onClick={doLogin} disabled={isBusy}>Login to DevMatch</button>
-            </div>
+              <button className="btn-primary" type="submit" disabled={isBusy}>Login to DevMatch</button>
+            </form>
           )}
 
           {authTab === "signup" && (
