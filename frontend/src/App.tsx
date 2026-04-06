@@ -70,6 +70,8 @@ type Suggestion = {
   preferredRole?: string;
   experienceLevel?: string;
   topTechSkills?: string[];
+  githubUrl?: string;
+  linkedinUrl?: string;
   matchPercent: number;
 };
 
@@ -343,6 +345,10 @@ export function App() {
   const [teamChatMessages, setTeamChatMessages] = useState<Array<{ fromUserId: string; fromUserName: string; text: string; timestamp: number }>>([]);
   const [teamChatInput, setTeamChatInput] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [deckStart, setDeckStart] = useState(0);
+  const [deckAnimating, setDeckAnimating] = useState<"left" | "right" | null>(null);
+  const [deckDragX, setDeckDragX] = useState(0);
+  const deckDragStartX = useRef<number | null>(null);
   const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
   const [incomingJoinRequests, setIncomingJoinRequests] = useState<IncomingJoinRequest[]>([]);
   const [sentJoinRequests, setSentJoinRequests] = useState<SentJoinRequest[]>([]);
@@ -494,6 +500,57 @@ export function App() {
     if (!rows.length) return [];
     return rows.sort((a, b) => b.points - a.points);
   }, [currentUser, suggestions]);
+
+  useEffect(() => {
+    if (!suggestions.length) {
+      setDeckStart(0);
+      setDeckDragX(0);
+      setDeckAnimating(null);
+      return;
+    }
+
+    setDeckStart((prev) => prev % suggestions.length);
+  }, [suggestions.length]);
+
+  const deckSuggestions = useMemo(() => {
+    if (!suggestions.length) return [];
+    return [...suggestions.slice(deckStart), ...suggestions.slice(0, deckStart)];
+  }, [suggestions, deckStart]);
+
+  const cycleDeck = (direction: "left" | "right") => {
+    if (!suggestions.length || deckAnimating) return;
+
+    setDeckAnimating(direction);
+    setTimeout(() => {
+      setDeckStart((prev) => (prev + 1) % suggestions.length);
+      setDeckAnimating(null);
+      setDeckDragX(0);
+    }, 260);
+  };
+
+  const onDeckPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (deckAnimating) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    deckDragStartX.current = event.clientX;
+  };
+
+  const onDeckPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (deckDragStartX.current === null || deckAnimating) return;
+    setDeckDragX(event.clientX - deckDragStartX.current);
+  };
+
+  const onDeckPointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (deckDragStartX.current === null || deckAnimating) return;
+    event.currentTarget.releasePointerCapture(event.pointerId);
+    deckDragStartX.current = null;
+
+    if (Math.abs(deckDragX) > 70) {
+      cycleDeck(deckDragX > 0 ? "right" : "left");
+      return;
+    }
+
+    setDeckDragX(0);
+  };
 
   const pushEvent = (label: string) => setEvents((prev) => [label, ...prev].slice(0, 30));
 
@@ -1931,29 +1988,99 @@ export function App() {
           <div className="section-title">
             <span className="dot" /> Suggested Teammates
           </div>
-          <div className="profiles-grid">
-            {suggestions.map((s) => (
-              <div className="profile-card" key={s.userId}>
-                <div className="profile-header">
-                  <div className="p-avatar" style={{ background: hashColor(s.name) }}>{initials(s.name)}</div>
-                  <div>
-                    <div className="p-name">{s.name}</div>
-                    <div className="p-role">{s.preferredRole ?? "Recommended Developer"}</div>
+          <div className="teammate-deck-wrap">
+            <div className="teammate-deck" aria-label="Suggested teammates card deck">
+              {deckSuggestions.slice(0, 3).map((s, index) => {
+                const isTop = index === 0;
+                const baseScale = 1 - index * 0.05;
+                const baseY = index * 14;
+                const dragX = isTop ? deckDragX : 0;
+                const exitX = deckAnimating && isTop ? (deckAnimating === "right" ? 420 : -420) : 0;
+                const tx = dragX + exitX;
+                const rotate = isTop ? tx / 18 : 0;
+                const opacity = isTop ? (deckAnimating ? 0 : 1) : Math.max(0.4, 0.82 - index * 0.18);
+
+                return (
+                  <div
+                    key={`${s.userId}-${index}`}
+                    className={`teammate-deck-card ${isTop ? "is-top" : ""}`}
+                    style={{
+                      zIndex: 30 - index,
+                      transform: `translate(-50%, ${baseY}px) scale(${baseScale}) translateX(${tx}px) rotate(${rotate}deg)`,
+                      opacity,
+                      transition: isTop && deckDragStartX.current !== null
+                        ? "none"
+                        : "transform 0.28s ease, opacity 0.28s ease, box-shadow 0.2s ease"
+                    }}
+                    onPointerDown={isTop ? onDeckPointerDown : undefined}
+                    onPointerMove={isTop ? onDeckPointerMove : undefined}
+                    onPointerUp={isTop ? onDeckPointerUp : undefined}
+                    onPointerCancel={isTop ? onDeckPointerUp : undefined}
+                    onClick={
+                      isTop
+                        ? () => {
+                            if (deckDragStartX.current !== null) return;
+                            cycleDeck(Math.random() > 0.5 ? "right" : "left");
+                          }
+                        : undefined
+                    }
+                  >
+                    <div className="deck-avatar" style={{ background: hashColor(s.name) }}>{initials(s.name)}</div>
+                    <div className="deck-name">{s.name}</div>
+                    <div className="deck-role">{s.preferredRole ?? "Recommended Developer"}</div>
+                    <div className="deck-meta">Core: {s.coreLanguage ?? "Not specified"} • Level: {s.experienceLevel ?? "beginner"}</div>
+                    <div className="deck-skill-row">
+                      <span className="deck-skill">Match {s.matchPercent}%</span>
+                      <span className="deck-skill">Rank {s.rankScore}</span>
+                      {(s.topTechSkills ?? []).slice(0, 3).map((skill) => (
+                        <span className="deck-skill" key={`${s.userId}-${skill}`}>{skill}</span>
+                      ))}
+                    </div>
+                    <div className="deck-links">
+                      <a
+                        className={`deck-icon-btn ${s.githubUrl ? "" : "disabled"}`}
+                        href={s.githubUrl || "#"}
+                        target="_blank"
+                        rel="noreferrer"
+                        aria-label={`${s.name} GitHub`}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          if (!s.githubUrl) event.preventDefault();
+                        }}
+                      >
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path d="M12 2C6.48 2 2 6.58 2 12.26c0 4.54 2.87 8.39 6.84 9.76.5.09.66-.22.66-.48 0-.24-.01-.88-.01-1.72-2.78.62-3.37-1.38-3.37-1.38-.45-1.18-1.1-1.49-1.1-1.49-.9-.63.07-.62.07-.62.99.07 1.5 1.04 1.5 1.04.88 1.54 2.32 1.1 2.88.84.09-.65.35-1.1.63-1.35-2.22-.26-4.56-1.13-4.56-5.02 0-1.11.38-2.02 1.02-2.73-.1-.25-.44-1.29.1-2.69 0 0 .84-.28 2.75 1.04a9.2 9.2 0 0 1 5 0c1.9-1.32 2.74-1.04 2.74-1.04.54 1.4.2 2.44.1 2.69.63.71 1.02 1.62 1.02 2.73 0 3.9-2.35 4.76-4.58 5.01.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.81 0 .26.17.57.67.47A10.27 10.27 0 0 0 22 12.26C22 6.58 17.52 2 12 2z" />
+                        </svg>
+                      </a>
+                      <a
+                        className={`deck-icon-btn ${s.linkedinUrl ? "" : "disabled"}`}
+                        href={s.linkedinUrl || "#"}
+                        target="_blank"
+                        rel="noreferrer"
+                        aria-label={`${s.name} LinkedIn`}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          if (!s.linkedinUrl) event.preventDefault();
+                        }}
+                      >
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path d="M4.98 3.5A2.48 2.48 0 1 1 4.97 8a2.48 2.48 0 0 1 .01-4.5zM3 8.75h3.95V21H3V8.75zm7.12 0h3.78v1.67h.05c.53-1 1.83-2.05 3.77-2.05 4.03 0 4.77 2.65 4.77 6.09V21h-3.95v-5.45c0-1.3-.03-2.98-1.82-2.98-1.83 0-2.11 1.43-2.11 2.89V21H10.12V8.75z" />
+                        </svg>
+                      </a>
+                    </div>
+                    <button
+                      className="deck-add-btn"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        alert(`Friend request sent to ${s.name}`);
+                      }}
+                    >
+                      Add Friend
+                    </button>
                   </div>
-                </div>
-                <div className="hack-meta" style={{ marginBottom: 10 }}>
-                  Core language: {s.coreLanguage ?? "Not specified"} | Level: {s.experienceLevel ?? "beginner"}
-                </div>
-                <div className="p-skills">
-                  <span className="p-skill">Match {s.matchPercent}%</span>
-                  <span className="p-skill">Rank {s.rankScore}</span>
-                  {(s.topTechSkills ?? []).map((skill) => (
-                    <span className="p-skill" key={`${s.userId}-${skill}`}>{skill}</span>
-                  ))}
-                </div>
-                <div className="p-rank">* {s.rankScore} pts</div>
-              </div>
-            ))}
+                );
+              })}
+            </div>
             {!suggestions.length && <div className="ghost-row">No suggestions yet. Open a team to load real matches.</div>}
           </div>
         </div>

@@ -15,16 +15,37 @@ const server = createServer(app);
 const rawAllowedOrigins = process.env.CLIENT_ORIGIN ?? "http://localhost:5173";
 const allowedOrigins = rawAllowedOrigins.split(",").map((origin) => origin.trim()).filter(Boolean);
 
+const isAllowedOrigin = (origin: string): boolean => {
+  if (allowedOrigins.includes(origin)) return true;
+
+  try {
+    const url = new URL(origin);
+    if (url.hostname === "localhost" || url.hostname === "127.0.0.1") return true;
+    return url.hostname.endsWith(".vercel.app");
+  } catch {
+    return false;
+  }
+};
+
+const corsOrigin = (origin: string | undefined, callback: (error: Error | null, allow?: boolean) => void) => {
+  if (!origin) {
+    callback(null, true);
+    return;
+  }
+
+  callback(null, isAllowedOrigin(origin));
+};
+
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins,
+    origin: corsOrigin,
     methods: ["GET", "POST", "PATCH"]
   }
 });
 
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: corsOrigin,
     credentials: true
   })
 );
@@ -415,11 +436,19 @@ const runGithubAutoSync = async () => {
 };
 
 const teamToUserMatch = (team: TeamDoc, user: UserDoc): number => {
+  const teamRoleNames = normalize(team.requiredRoles.map((r) => r.role));
   const teamSkillNeeds = normalize(team.requiredRoles.flatMap((r) => r.mustHaveSkills));
   const userRoleSkills = normalize([...user.skills.tech, ...user.skills.soft]);
-  const roleSkillFit = intersectionRatio(teamSkillNeeds, userRoleSkills);
+  const userRoleSignals = normalize([...user.preferredRoles, ...user.skills.domains]);
 
-  if (teamSkillNeeds.length > 0 && roleSkillFit === 0) {
+  const requiredSkillFit = intersectionRatio(teamSkillNeeds, userRoleSkills);
+  const requiredRoleFit = intersectionRatio(teamRoleNames, userRoleSignals);
+  const roleSkillFit =
+    teamSkillNeeds.length || teamRoleNames.length
+      ? 0.7 * requiredSkillFit + 0.3 * requiredRoleFit
+      : 0;
+
+  if ((teamSkillNeeds.length > 0 || teamRoleNames.length > 0) && roleSkillFit === 0) {
     return 0;
   }
 
@@ -429,9 +458,9 @@ const teamToUserMatch = (team: TeamDoc, user: UserDoc): number => {
   const rankFit = user.rankScore / 100;
 
   const weighted =
-    0.45 * roleSkillFit +
-    0.2 * experienceFit +
-    0.15 * domainFit +
+    0.55 * roleSkillFit +
+    0.15 * experienceFit +
+    0.1 * domainFit +
     0.1 * availabilityFit +
     0.1 * rankFit;
 
@@ -530,20 +559,6 @@ const DEMO_USERS = [
     linkedinUrl: "https://linkedin.com/in/sneha",
     githubMetrics: { commits: 80, pullRequests: 12, repos: 6, consistency: 0.7 },
     rankScore: 79
-  },
-  {
-    name: "Arnav Mittal",
-    email: "arnavmittal0208@gmail.com",
-    password: "demo",
-    experienceLevel: "advanced" as ExperienceLevel,
-    skills: { tech: ["react", "node", "typescript", "mongodb"], soft: ["leadership", "communication"], domains: ["full stack"] },
-    preferredRoles: ["full stack developer", "technical lead"],
-    interests: ["saas", "developer tools", "fintech"],
-    hackathonHistory: ["HackIndia 2025", "Smart India Hackathon 2025"],
-    githubUrl: "https://github.com/arnavmittal0208",
-    linkedinUrl: "https://linkedin.com/in/arnav-mittal",
-    githubMetrics: { commits: 250, pullRequests: 45, repos: 16, consistency: 0.93 },
-    rankScore: 85
   }
 ];
 
@@ -1184,6 +1199,8 @@ app.get("/teams/:id/suggestions", authMiddleware, async (req, res) => {
         preferredRole,
         experienceLevel: userRaw.experienceLevel ?? "beginner",
         topTechSkills: (userRaw.skills?.tech ?? []).slice(0, 3),
+        githubUrl: userRaw.githubUrl ?? "",
+        linkedinUrl: userRaw.linkedinUrl ?? "",
         matchPercent,
         updatedAt: userRaw.updatedAt ? new Date(userRaw.updatedAt).getTime() : 0
       };

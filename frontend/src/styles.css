@@ -694,6 +694,166 @@ nav {
   color: var(--success);
 }
 
+.teammate-deck-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.teammate-deck {
+  position: relative;
+  width: min(100%, 420px);
+  height: 520px;
+}
+
+.teammate-deck-card {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 100%;
+  min-height: 440px;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(160deg, rgba(24, 24, 31, 0.9), rgba(17, 17, 24, 0.96));
+  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.34), inset 0 0 0 1px rgba(124, 106, 247, 0.12);
+  backdrop-filter: blur(14px);
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: grab;
+  user-select: none;
+}
+
+.teammate-deck-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(124, 106, 247, 0.45), rgba(20, 184, 166, 0.14), transparent 70%);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.teammate-deck-card.is-top:hover {
+  box-shadow: 0 26px 46px rgba(0, 0, 0, 0.38), 0 0 0 1px rgba(124, 106, 247, 0.24);
+}
+
+.deck-avatar {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-head);
+  font-size: 28px;
+  font-weight: 700;
+  color: #fff;
+  margin-top: 4px;
+  margin-bottom: 14px;
+  box-shadow: 0 0 0 8px rgba(124, 106, 247, 0.08), 0 12px 24px rgba(0, 0, 0, 0.3);
+}
+
+.deck-name {
+  font-family: var(--font-head);
+  font-size: 22px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.deck-role {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--accent3);
+  text-align: center;
+}
+
+.deck-meta {
+  margin-top: 10px;
+  margin-bottom: 14px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text2);
+}
+
+.deck-skill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.deck-skill {
+  padding: 5px 10px;
+  border-radius: 99px;
+  font-size: 11px;
+  color: var(--text2);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.deck-links {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.deck-icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+  background: rgba(124, 106, 247, 0.1);
+  transition: transform 0.2s, border-color 0.2s, background 0.2s;
+}
+
+.deck-icon-btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(124, 106, 247, 0.4);
+  background: rgba(124, 106, 247, 0.16);
+}
+
+.deck-icon-btn.disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.deck-icon-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+.deck-add-btn {
+  margin-top: auto;
+  width: 100%;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-family: var(--font-head);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent), #5a7bff);
+  cursor: pointer;
+  transition: transform 0.2s, filter 0.2s, box-shadow 0.2s;
+}
+
+.deck-add-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+  box-shadow: 0 12px 22px rgba(124, 106, 247, 0.28);
+}
+
 .swap-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -1114,6 +1274,16 @@ button:not(:disabled):active {
     max-width: calc(100vw - 20px);
   }
 
+  .teammate-deck {
+    width: min(100%, 360px);
+    height: 490px;
+  }
+
+  .teammate-deck-card {
+    min-height: 420px;
+    padding: 20px 16px;
+  }
+
   .profile-page-card {
     padding: 22px 18px;
   }
@@ -1173,5 +1343,17 @@ button:not(:disabled):active {
 
   .points-bar-wrap {
     width: 84px;
+  }
+
+  .teammate-deck {
+    height: 470px;
+  }
+
+  .teammate-deck-card {
+    min-height: 400px;
+  }
+
+  .deck-name {
+    font-size: 20px;
   }
 }
