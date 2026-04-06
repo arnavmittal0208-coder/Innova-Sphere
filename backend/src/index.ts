@@ -530,6 +530,20 @@ const DEMO_USERS = [
     linkedinUrl: "https://linkedin.com/in/sneha",
     githubMetrics: { commits: 80, pullRequests: 12, repos: 6, consistency: 0.7 },
     rankScore: 79
+  },
+  {
+    name: "Arnav Mittal",
+    email: "arnavmittal0208@gmail.com",
+    password: "demo",
+    experienceLevel: "advanced" as ExperienceLevel,
+    skills: { tech: ["react", "node", "typescript", "mongodb"], soft: ["leadership", "communication"], domains: ["full stack"] },
+    preferredRoles: ["full stack developer", "technical lead"],
+    interests: ["saas", "developer tools", "fintech"],
+    hackathonHistory: ["HackIndia 2025", "Smart India Hackathon 2025"],
+    githubUrl: "https://github.com/arnavmittal0208",
+    linkedinUrl: "https://linkedin.com/in/arnav-mittal",
+    githubMetrics: { commits: 250, pullRequests: 45, repos: 16, consistency: 0.93 },
+    rankScore: 85
   }
 ];
 
