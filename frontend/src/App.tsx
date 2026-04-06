@@ -2029,7 +2029,6 @@ export function App() {
           <div className="section-title">
             <span className="dot" /> Add Dev Friend
           </div>
-          {!suggestions.length && <div className="deck-hint">Showing sample profiles until live matches load.</div>}
           <div className="teammate-deck-wrap">
             <div className="teammate-deck" aria-label="Suggested teammates card deck">
               {deckSuggestions.slice(0, 3).map((s, index) => {
@@ -2072,7 +2071,6 @@ export function App() {
                     <div className="deck-role">{s.preferredRole ?? "Recommended Developer"}</div>
                     <div className="deck-meta">Core: {s.coreLanguage ?? "Not specified"} • Level: {s.experienceLevel ?? "beginner"}</div>
                     <div className="deck-id">ID: {s.userId}</div>
-                    {!suggestions.length && <div className="deck-sample-tag">Sample profile</div>}
                     <div className="deck-skill-row">
                       <span className="deck-skill">Match {s.matchPercent}%</span>
                       <span className="deck-skill">Rank {s.rankScore}</span>
