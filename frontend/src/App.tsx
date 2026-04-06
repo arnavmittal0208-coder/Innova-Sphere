@@ -3121,7 +3121,7 @@ export function App() {
                 </datalist>
               </div>
               <div className="skills-grid">
-                {TEAM_ROLE_OPTIONS.map((role) => (
+                {[...new Set([...TEAM_ROLE_OPTIONS, ...teamRoles])].map((role) => (
                   <span
                     key={role}
                     className={`skill-chip ${teamRoles.includes(role) ? "selected" : ""}`}
