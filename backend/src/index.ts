@@ -1151,8 +1151,7 @@ app.get("/teams/:id/suggestions", authMiddleware, async (req, res) => {
   }
 
   const users = await UserModel.find({
-    _id: { $nin: team.members },
-    profileCompleted: true
+    _id: { $nin: team.members }
   }).lean();
 
   const teamDoc = new TeamModel(team);
@@ -1161,6 +1160,8 @@ app.get("/teams/:id/suggestions", authMiddleware, async (req, res) => {
       const userDoc = new UserModel(userRaw);
       const coreLanguage = userRaw.skills?.tech?.[0] ?? "Not specified";
       const preferredRole = userRaw.preferredRoles?.[0] ?? "Developer";
+      const matchPercent = teamToUserMatch(teamDoc, userDoc);
+
       return {
         userId: userRaw._id,
         name: userRaw.name,
@@ -1169,14 +1170,18 @@ app.get("/teams/:id/suggestions", authMiddleware, async (req, res) => {
         preferredRole,
         experienceLevel: userRaw.experienceLevel ?? "beginner",
         topTechSkills: (userRaw.skills?.tech ?? []).slice(0, 3),
-        matchPercent: teamToUserMatch(teamDoc, userDoc)
+        matchPercent,
+        updatedAt: userRaw.updatedAt ? new Date(userRaw.updatedAt).getTime() : 0
       };
     })
+    .filter((item) => item.matchPercent > 0)
     .sort((a, b) => {
       if (b.matchPercent !== a.matchPercent) return b.matchPercent - a.matchPercent;
       if (b.rankScore !== a.rankScore) return b.rankScore - a.rankScore;
+      if (b.updatedAt !== a.updatedAt) return b.updatedAt - a.updatedAt;
       return a.name.localeCompare(b.name);
     })
+    .map(({ updatedAt: _updatedAt, ...item }) => item)
     .slice(0, 20);
 
   return res.json(suggestions);
