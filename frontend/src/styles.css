@@ -1036,6 +1036,8 @@ button:not(:disabled):active {
 
 @media (max-width: 700px) {
   nav {
+    position: relative;
+    top: auto;
     height: auto;
     padding: 12px 14px;
     flex-wrap: wrap;
