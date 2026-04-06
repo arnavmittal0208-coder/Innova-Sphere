@@ -75,6 +75,15 @@ type Suggestion = {
   matchPercent: number;
 };
 
+type SideCardData = {
+  side: "left" | "right";
+  title: string;
+  personName: string;
+  subtitle: string;
+  note: string;
+  chips: string[];
+};
+
 const SAMPLE_SUGGESTIONS: Suggestion[] = [
   {
     userId: "sample-01",
@@ -111,6 +120,25 @@ const SAMPLE_SUGGESTIONS: Suggestion[] = [
     githubUrl: "https://github.com/",
     linkedinUrl: "https://linkedin.com/",
     matchPercent: 86
+  }
+];
+
+const SIDE_CARDS: SideCardData[] = [
+  {
+    side: "left",
+    title: "Requests Received",
+    personName: "Priyansh Raj",
+    subtitle: "Backend Developer • Rank 82",
+    note: "Hey, your profile looks solid for our fintech build sprint this weekend.",
+    chips: ["Pending", "Node.js", "MongoDB"]
+  },
+  {
+    side: "right",
+    title: "Your Friends",
+    personName: "Nisha Kapoor",
+    subtitle: "Product Designer • Rank 88",
+    note: "Last active 2h ago. Open to AI + UX hackathon collabs.",
+    chips: ["Online", "Figma", "UI Systems"]
   }
 ];
 
@@ -388,6 +416,7 @@ export function App() {
   const [deckAnimating, setDeckAnimating] = useState<"left" | "right" | null>(null);
   const [deckDragX, setDeckDragX] = useState(0);
   const deckDragStartX = useRef<number | null>(null);
+  const [activeSideCard, setActiveSideCard] = useState<"left" | "right" | null>(null);
   const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
   const [incomingJoinRequests, setIncomingJoinRequests] = useState<IncomingJoinRequest[]>([]);
   const [sentJoinRequests, setSentJoinRequests] = useState<SentJoinRequest[]>([]);
@@ -2029,100 +2058,147 @@ export function App() {
           <div className="section-title">
             <span className="dot" /> Add Dev Friend
           </div>
-          <div className="teammate-deck-wrap">
-            <div className="teammate-deck" aria-label="Suggested teammates card deck">
-              {deckSuggestions.slice(0, 3).map((s, index) => {
-                const isTop = index === 0;
-                const baseScale = 1 - index * 0.05;
-                const baseY = index * 14;
-                const dragX = isTop ? deckDragX : 0;
-                const exitX = deckAnimating && isTop ? (deckAnimating === "right" ? 420 : -420) : 0;
-                const tx = dragX + exitX;
-                const rotate = isTop ? tx / 18 : 0;
-                const opacity = isTop ? (deckAnimating ? 0 : 1) : Math.max(0.4, 0.82 - index * 0.18);
+          <div className="friend-stage">
+            {SIDE_CARDS.map((card) => (
+              <button
+                key={`side-card-${card.side}`}
+                className={`side-preview-card side-preview-card-${card.side}`}
+                onClick={() => setActiveSideCard(card.side)}
+              >
+                <div className="side-preview-title">{card.title}</div>
+                <div className="side-preview-name">{card.personName}</div>
+                <div className="side-preview-sub">{card.subtitle}</div>
+                <div className="side-preview-note">{card.note}</div>
+                <div className="side-preview-chips">
+                  {card.chips.map((chip) => (
+                    <span className="deck-skill" key={`${card.side}-${chip}`}>{chip}</span>
+                  ))}
+                </div>
+              </button>
+            ))}
 
-                return (
-                  <div
-                    key={`${s.userId}-${index}`}
-                    className={`teammate-deck-card ${isTop ? "is-top" : ""}`}
-                    style={{
-                      zIndex: 30 - index,
-                      transform: `translate(-50%, ${baseY}px) scale(${baseScale}) translateX(${tx}px) rotate(${rotate}deg)`,
-                      opacity,
-                      transition: isTop && deckDragStartX.current !== null
-                        ? "none"
-                        : "transform 0.28s ease, opacity 0.28s ease, box-shadow 0.2s ease"
-                    }}
-                    onPointerDown={isTop ? onDeckPointerDown : undefined}
-                    onPointerMove={isTop ? onDeckPointerMove : undefined}
-                    onPointerUp={isTop ? onDeckPointerUp : undefined}
-                    onPointerCancel={isTop ? onDeckPointerUp : undefined}
-                    onClick={
-                      isTop
-                        ? () => {
-                            if (deckDragStartX.current !== null) return;
-                            cycleDeck(Math.random() > 0.5 ? "right" : "left");
-                          }
-                        : undefined
-                    }
-                  >
-                    <div className="deck-avatar" style={{ background: hashColor(s.name) }}>{initials(s.name)}</div>
-                    <div className="deck-name">{s.name}</div>
-                    <div className="deck-role">{s.preferredRole ?? "Recommended Developer"}</div>
-                    <div className="deck-meta">Core: {s.coreLanguage ?? "Not specified"} • Level: {s.experienceLevel ?? "beginner"}</div>
-                    <div className="deck-id">ID: {s.userId}</div>
-                    <div className="deck-skill-row">
-                      <span className="deck-skill">Match {s.matchPercent}%</span>
-                      <span className="deck-skill">Rank {s.rankScore}</span>
-                      {(s.topTechSkills ?? []).slice(0, 3).map((skill) => (
-                        <span className="deck-skill" key={`${s.userId}-${skill}`}>{skill}</span>
-                      ))}
-                    </div>
-                    <div className="deck-links">
-                      <a
-                        className={`deck-icon-btn ${s.githubUrl ? "" : "disabled"}`}
-                        href={s.githubUrl || "#"}
-                        target="_blank"
-                        rel="noreferrer"
-                        aria-label={`${s.name} GitHub`}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          if (!s.githubUrl) event.preventDefault();
-                        }}
-                      >
-                        <svg viewBox="0 0 24 24" aria-hidden="true">
-                          <path d="M12 2C6.48 2 2 6.58 2 12.26c0 4.54 2.87 8.39 6.84 9.76.5.09.66-.22.66-.48 0-.24-.01-.88-.01-1.72-2.78.62-3.37-1.38-3.37-1.38-.45-1.18-1.1-1.49-1.1-1.49-.9-.63.07-.62.07-.62.99.07 1.5 1.04 1.5 1.04.88 1.54 2.32 1.1 2.88.84.09-.65.35-1.1.63-1.35-2.22-.26-4.56-1.13-4.56-5.02 0-1.11.38-2.02 1.02-2.73-.1-.25-.44-1.29.1-2.69 0 0 .84-.28 2.75 1.04a9.2 9.2 0 0 1 5 0c1.9-1.32 2.74-1.04 2.74-1.04.54 1.4.2 2.44.1 2.69.63.71 1.02 1.62 1.02 2.73 0 3.9-2.35 4.76-4.58 5.01.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.81 0 .26.17.57.67.47A10.27 10.27 0 0 0 22 12.26C22 6.58 17.52 2 12 2z" />
-                        </svg>
-                      </a>
-                      <a
-                        className={`deck-icon-btn ${s.linkedinUrl ? "" : "disabled"}`}
-                        href={s.linkedinUrl || "#"}
-                        target="_blank"
-                        rel="noreferrer"
-                        aria-label={`${s.name} LinkedIn`}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          if (!s.linkedinUrl) event.preventDefault();
-                        }}
-                      >
-                        <svg viewBox="0 0 24 24" aria-hidden="true">
-                          <path d="M4.98 3.5A2.48 2.48 0 1 1 4.97 8a2.48 2.48 0 0 1 .01-4.5zM3 8.75h3.95V21H3V8.75zm7.12 0h3.78v1.67h.05c.53-1 1.83-2.05 3.77-2.05 4.03 0 4.77 2.65 4.77 6.09V21h-3.95v-5.45c0-1.3-.03-2.98-1.82-2.98-1.83 0-2.11 1.43-2.11 2.89V21H10.12V8.75z" />
-                        </svg>
-                      </a>
-                    </div>
-                    <button
-                      className="deck-add-btn"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        alert(`Friend request sent to ${s.name}`);
+            <div className="teammate-deck-wrap friend-center-shell">
+              <div className="teammate-deck" aria-label="Suggested teammates card deck">
+                {deckSuggestions.slice(0, 3).map((s, index) => {
+                  const isTop = index === 0;
+                  const baseScale = 1 - index * 0.05;
+                  const baseY = index * 14;
+                  const dragX = isTop ? deckDragX : 0;
+                  const exitX = deckAnimating && isTop ? (deckAnimating === "right" ? 420 : -420) : 0;
+                  const tx = dragX + exitX;
+                  const rotate = isTop ? tx / 18 : 0;
+                  const opacity = isTop ? (deckAnimating ? 0 : 1) : Math.max(0.4, 0.82 - index * 0.18);
+
+                  return (
+                    <div
+                      key={`${s.userId}-${index}`}
+                      className={`teammate-deck-card ${isTop ? "is-top" : ""}`}
+                      style={{
+                        zIndex: 30 - index,
+                        transform: `translate(-50%, ${baseY}px) scale(${baseScale}) translateX(${tx}px) rotate(${rotate}deg)`,
+                        opacity,
+                        transition: isTop && deckDragStartX.current !== null
+                          ? "none"
+                          : "transform 0.28s ease, opacity 0.28s ease, box-shadow 0.2s ease"
                       }}
+                      onPointerDown={isTop ? onDeckPointerDown : undefined}
+                      onPointerMove={isTop ? onDeckPointerMove : undefined}
+                      onPointerUp={isTop ? onDeckPointerUp : undefined}
+                      onPointerCancel={isTop ? onDeckPointerUp : undefined}
+                      onClick={
+                        isTop
+                          ? () => {
+                              if (deckDragStartX.current !== null) return;
+                              cycleDeck(Math.random() > 0.5 ? "right" : "left");
+                            }
+                          : undefined
+                      }
                     >
-                      Add Dev Friend
-                    </button>
-                  </div>
-                );
-              })}
+                      <div className="deck-avatar" style={{ background: hashColor(s.name) }}>{initials(s.name)}</div>
+                      <div className="deck-name">{s.name}</div>
+                      <div className="deck-role">{s.preferredRole ?? "Recommended Developer"}</div>
+                      <div className="deck-meta">Core: {s.coreLanguage ?? "Not specified"} • Level: {s.experienceLevel ?? "beginner"}</div>
+                      <div className="deck-id">ID: {s.userId}</div>
+                      <div className="deck-skill-row">
+                        <span className="deck-skill">Match {s.matchPercent}%</span>
+                        <span className="deck-skill">Rank {s.rankScore}</span>
+                        {(s.topTechSkills ?? []).slice(0, 3).map((skill) => (
+                          <span className="deck-skill" key={`${s.userId}-${skill}`}>{skill}</span>
+                        ))}
+                      </div>
+                      <div className="deck-links">
+                        <a
+                          className={`deck-icon-btn ${s.githubUrl ? "" : "disabled"}`}
+                          href={s.githubUrl || "#"}
+                          target="_blank"
+                          rel="noreferrer"
+                          aria-label={`${s.name} GitHub`}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            if (!s.githubUrl) event.preventDefault();
+                          }}
+                        >
+                          <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M12 2C6.48 2 2 6.58 2 12.26c0 4.54 2.87 8.39 6.84 9.76.5.09.66-.22.66-.48 0-.24-.01-.88-.01-1.72-2.78.62-3.37-1.38-3.37-1.38-.45-1.18-1.1-1.49-1.1-1.49-.9-.63.07-.62.07-.62.99.07 1.5 1.04 1.5 1.04.88 1.54 2.32 1.1 2.88.84.09-.65.35-1.1.63-1.35-2.22-.26-4.56-1.13-4.56-5.02 0-1.11.38-2.02 1.02-2.73-.1-.25-.44-1.29.1-2.69 0 0 .84-.28 2.75 1.04a9.2 9.2 0 0 1 5 0c1.9-1.32 2.74-1.04 2.74-1.04.54 1.4.2 2.44.1 2.69.63.71 1.02 1.62 1.02 2.73 0 3.9-2.35 4.76-4.58 5.01.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.81 0 .26.17.57.67.47A10.27 10.27 0 0 0 22 12.26C22 6.58 17.52 2 12 2z" />
+                          </svg>
+                        </a>
+                        <a
+                          className={`deck-icon-btn ${s.linkedinUrl ? "" : "disabled"}`}
+                          href={s.linkedinUrl || "#"}
+                          target="_blank"
+                          rel="noreferrer"
+                          aria-label={`${s.name} LinkedIn`}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            if (!s.linkedinUrl) event.preventDefault();
+                          }}
+                        >
+                          <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M4.98 3.5A2.48 2.48 0 1 1 4.97 8a2.48 2.48 0 0 1 .01-4.5zM3 8.75h3.95V21H3V8.75zm7.12 0h3.78v1.67h.05c.53-1 1.83-2.05 3.77-2.05 4.03 0 4.77 2.65 4.77 6.09V21h-3.95v-5.45c0-1.3-.03-2.98-1.82-2.98-1.83 0-2.11 1.43-2.11 2.89V21H10.12V8.75z" />
+                          </svg>
+                        </a>
+                      </div>
+                      <button
+                        className="deck-add-btn"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          alert(`Friend request sent to ${s.name}`);
+                        }}
+                      >
+                        Add Dev Friend
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
+
+            {activeSideCard && (
+              <div className="side-pop-layer" onClick={() => setActiveSideCard(null)}>
+                <div className="side-pop-card" onClick={(event) => event.stopPropagation()}>
+                  {(() => {
+                    const card = SIDE_CARDS.find((item) => item.side === activeSideCard);
+                    if (!card) return null;
+                    return (
+                      <>
+                        <div className="side-pop-top">
+                          <div className="side-preview-title">{card.title}</div>
+                          <button className="modal-close" onClick={() => setActiveSideCard(null)}>×</button>
+                        </div>
+                        <div className="deck-name" style={{ fontSize: 24, textAlign: "left" }}>{card.personName}</div>
+                        <div className="deck-role" style={{ textAlign: "left" }}>{card.subtitle}</div>
+                        <div className="deck-meta" style={{ textAlign: "left" }}>{card.note}</div>
+                        <div className="side-preview-chips" style={{ justifyContent: "flex-start" }}>
+                          {card.chips.map((chip) => (
+                            <span className="deck-skill" key={`pop-${card.side}-${chip}`}>{chip}</span>
+                          ))}
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
