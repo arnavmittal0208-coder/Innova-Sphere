@@ -1986,7 +1986,7 @@ export function App() {
           </div>
 
           <div className="section-title">
-            <span className="dot" /> Suggested Teammates
+            <span className="dot" /> Add Dev Friend
           </div>
           <div className="teammate-deck-wrap">
             <div className="teammate-deck" aria-label="Suggested teammates card deck">
@@ -2029,6 +2029,7 @@ export function App() {
                     <div className="deck-name">{s.name}</div>
                     <div className="deck-role">{s.preferredRole ?? "Recommended Developer"}</div>
                     <div className="deck-meta">Core: {s.coreLanguage ?? "Not specified"} • Level: {s.experienceLevel ?? "beginner"}</div>
+                    <div className="deck-id">ID: {s.userId}</div>
                     <div className="deck-skill-row">
                       <span className="deck-skill">Match {s.matchPercent}%</span>
                       <span className="deck-skill">Rank {s.rankScore}</span>
@@ -2075,7 +2076,7 @@ export function App() {
                         alert(`Friend request sent to ${s.name}`);
                       }}
                     >
-                      Add Friend
+                      Add Dev Friend
                     </button>
                   </div>
                 );

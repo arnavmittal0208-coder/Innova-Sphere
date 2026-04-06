@@ -779,6 +779,15 @@ nav {
   color: var(--text2);
 }
 
+.deck-id {
+  margin-bottom: 12px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--text3);
+  opacity: 0.9;
+  word-break: break-all;
+}
+
 .deck-skill-row {
   display: flex;
   flex-wrap: wrap;
