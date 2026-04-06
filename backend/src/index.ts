@@ -179,6 +179,28 @@ const TeamInviteSchema = new Schema(
 
 TeamInviteSchema.index({ teamId: 1, toUserId: 1, status: 1 }, { unique: true, partialFilterExpression: { status: "pending" } });
 
+const FriendRequestSchema = new Schema(
+  {
+    fromUserId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    toUserId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    status: { type: String, enum: ["pending", "accepted", "declined"], default: "pending" },
+    message: { type: String, default: "" }
+  },
+  { timestamps: true }
+);
+
+FriendRequestSchema.index({ fromUserId: 1, toUserId: 1, status: 1 }, { unique: true, partialFilterExpression: { status: "pending" } });
+
+const FriendshipSchema = new Schema(
+  {
+    userAId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    userBId: { type: Schema.Types.ObjectId, ref: "User", required: true }
+  },
+  { timestamps: true }
+);
+
+FriendshipSchema.index({ userAId: 1, userBId: 1 }, { unique: true });
+
 const SkillSwapSchema = new Schema(
   {
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
@@ -246,6 +268,8 @@ const UserModel = mongoose.model("User", UserSchema);
 const TeamModel = mongoose.model("Team", TeamSchema);
 const JoinRequestModel = mongoose.model("JoinRequest", JoinRequestSchema);
 const TeamInviteModel = mongoose.model("TeamInvite", TeamInviteSchema);
+const FriendRequestModel = mongoose.model("FriendRequest", FriendRequestSchema);
+const FriendshipModel = mongoose.model("Friendship", FriendshipSchema);
 const SkillSwapModel = mongoose.model("SkillSwap", SkillSwapSchema);
 const SkillSwapRequestModel = mongoose.model("SkillSwapRequest", SkillSwapRequestSchema);
 const TaskModel = mongoose.model("Task", TaskSchema);
@@ -257,6 +281,23 @@ type TeamDoc = HydratedDocument<InferSchemaType<typeof TeamSchema>>;
 const normalize = (arr: string[]) => arr.map((s) => s.trim().toLowerCase()).filter(Boolean);
 
 const normalizeHackathon = (value: string): string => value.trim().toLowerCase();
+
+const getFriendPairIds = (userAId: string, userBId: string) => {
+  const [userA, userB] = [userAId, userBId].sort();
+  return { userAId: userA, userBId: userB };
+};
+
+const buildFriendProfile = (userRaw: any) => ({
+  userId: userRaw._id,
+  name: userRaw.name,
+  email: userRaw.email,
+  rankScore: userRaw.rankScore ?? 0,
+  preferredRole: userRaw.preferredRoles?.[0] ?? "Developer",
+  experienceLevel: userRaw.experienceLevel ?? "beginner",
+  coreLanguage: userRaw.skills?.tech?.[0] ?? "Not specified",
+  githubUrl: userRaw.githubUrl ?? "",
+  linkedinUrl: userRaw.linkedinUrl ?? ""
+});
 
 const escapeRegex = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -1581,6 +1622,184 @@ app.patch("/team-invites/:id", authMiddleware, async (req: AuthRequest, res) => 
 
   io.emit("team.invite.updated", invite.toObject());
   return res.json(invite);
+});
+
+app.post("/friend-requests", authMiddleware, async (req: AuthRequest, res) => {
+  const { toUserId, message } = req.body as { toUserId?: string; message?: string };
+  if (!toUserId) {
+    return res.status(400).json({ message: "toUserId is required" });
+  }
+
+  if (toUserId === req.authUserId) {
+    return res.status(409).json({ message: "cannot send a friend request to yourself" });
+  }
+
+  const targetUser = await UserModel.findById(toUserId).lean();
+  if (!targetUser) {
+    return res.status(404).json({ message: "target user not found" });
+  }
+
+  const existingFriendship = await FriendshipModel.findOne({
+    $or: [
+      getFriendPairIds(req.authUserId ?? "", toUserId),
+      getFriendPairIds(toUserId, req.authUserId ?? "")
+    ]
+  }).lean();
+  if (existingFriendship) {
+    return res.status(409).json({ message: "you are already friends" });
+  }
+
+  const existingPending = await FriendRequestModel.findOne({ fromUserId: req.authUserId, toUserId, status: "pending" }).lean();
+  if (existingPending) {
+    return res.status(409).json({ message: "pending friend request already exists" });
+  }
+
+  const reversePending = await FriendRequestModel.findOne({ fromUserId: toUserId, toUserId: req.authUserId, status: "pending" }).lean();
+  if (reversePending) {
+    return res.status(409).json({ message: "this user already sent you a friend request" });
+  }
+
+  const requestDoc = await FriendRequestModel.create({
+    fromUserId: req.authUserId,
+    toUserId,
+    status: "pending",
+    message: (message ?? "").trim().slice(0, 300)
+  });
+
+  io.emit("friend.request.created", requestDoc.toObject());
+  return res.status(201).json(requestDoc);
+});
+
+app.get("/users/:id/incoming-friend-requests", authMiddleware, async (req: AuthRequest, res) => {
+  if (req.authUserId !== req.params.id) {
+    return res.status(403).json({ message: "you can only view your own incoming requests" });
+  }
+
+  const requests = await FriendRequestModel.find({ toUserId: req.params.id }).sort({ createdAt: -1 }).limit(100).lean();
+  if (!requests.length) {
+    return res.json([]);
+  }
+
+  const requesterIds = Array.from(new Set(requests.map((requestItem) => requestItem.fromUserId.toString())));
+  const requesters = await UserModel.find({ _id: { $in: requesterIds } })
+    .select("name email rankScore preferredRoles experienceLevel skills githubUrl linkedinUrl")
+    .lean();
+  const requesterMap = new Map(requesters.map((user) => [user._id.toString(), buildFriendProfile(user)]));
+
+  return res.json(
+    requests.map((requestItem) => ({
+      requestId: requestItem._id,
+      fromUserId: requestItem.fromUserId,
+      fromUser: requesterMap.get(requestItem.fromUserId.toString()) ?? null,
+      message: requestItem.message,
+      status: requestItem.status,
+      createdAt: requestItem.createdAt
+    }))
+  );
+});
+
+app.get("/users/:id/sent-friend-requests", authMiddleware, async (req: AuthRequest, res) => {
+  if (req.authUserId !== req.params.id) {
+    return res.status(403).json({ message: "you can only view your own sent requests" });
+  }
+
+  const requests = await FriendRequestModel.find({ fromUserId: req.params.id }).sort({ createdAt: -1 }).limit(100).lean();
+  if (!requests.length) {
+    return res.json([]);
+  }
+
+  const targetIds = Array.from(new Set(requests.map((requestItem) => requestItem.toUserId.toString())));
+  const targets = await UserModel.find({ _id: { $in: targetIds } })
+    .select("name email rankScore preferredRoles experienceLevel skills githubUrl linkedinUrl")
+    .lean();
+  const targetMap = new Map(targets.map((user) => [user._id.toString(), buildFriendProfile(user)]));
+
+  return res.json(
+    requests.map((requestItem) => ({
+      requestId: requestItem._id,
+      toUserId: requestItem.toUserId,
+      toUser: targetMap.get(requestItem.toUserId.toString()) ?? null,
+      message: requestItem.message,
+      status: requestItem.status,
+      createdAt: requestItem.createdAt
+    }))
+  );
+});
+
+app.get("/users/:id/friends", authMiddleware, async (req: AuthRequest, res) => {
+  if (req.authUserId !== req.params.id) {
+    return res.status(403).json({ message: "you can only view your own friends" });
+  }
+
+  const friendships = await FriendshipModel.find({
+    $or: [{ userAId: req.params.id }, { userBId: req.params.id }]
+  }).sort({ createdAt: -1 }).lean();
+
+  if (!friendships.length) {
+    return res.json([]);
+  }
+
+  const friendIds = friendships.map((friendship) =>
+    friendship.userAId.toString() === req.params.id ? friendship.userBId.toString() : friendship.userAId.toString()
+  );
+  const friends = await UserModel.find({ _id: { $in: friendIds } })
+    .select("name email rankScore preferredRoles experienceLevel skills githubUrl linkedinUrl")
+    .lean();
+  const friendMap = new Map(friends.map((user) => [user._id.toString(), buildFriendProfile(user)]));
+
+  return res.json(
+    friendships
+      .map((friendship) => {
+        const friendId = friendship.userAId.toString() === req.params.id ? friendship.userBId.toString() : friendship.userAId.toString();
+        return {
+          friendshipId: friendship._id,
+          friend: friendMap.get(friendId) ?? null,
+          createdAt: friendship.createdAt
+        };
+      })
+      .filter((item) => item.friend)
+  );
+});
+
+app.patch("/friend-requests/:id", authMiddleware, async (req: AuthRequest, res) => {
+  const { status } = req.body as { status?: "accepted" | "declined" };
+  if (!status || !["accepted", "declined"].includes(status)) {
+    return res.status(400).json({ message: "status must be accepted or declined" });
+  }
+
+  const requestDoc = await FriendRequestModel.findById(req.params.id);
+  if (!requestDoc) {
+    return res.status(404).json({ message: "friend request not found" });
+  }
+
+  if (requestDoc.toUserId.toString() !== req.authUserId) {
+    return res.status(403).json({ message: "only invited user can respond" });
+  }
+
+  if (requestDoc.status !== "pending") {
+    return res.status(409).json({ message: "friend request already resolved" });
+  }
+
+  if (status === "accepted") {
+    const pair = getFriendPairIds(requestDoc.fromUserId.toString(), requestDoc.toUserId.toString());
+    const existingFriendship = await FriendshipModel.findOne(pair).lean();
+    if (!existingFriendship) {
+      await FriendshipModel.create(pair);
+    }
+  }
+
+  requestDoc.status = status;
+  await requestDoc.save();
+
+  io.emit("friend.request.updated", requestDoc.toObject());
+  if (status === "accepted") {
+    io.emit("friendship.created", {
+      userAId: requestDoc.fromUserId,
+      userBId: requestDoc.toUserId
+    });
+  }
+
+  return res.json(requestDoc);
 });
 
 app.post("/skill-swaps", authMiddleware, async (req: AuthRequest, res) => {
