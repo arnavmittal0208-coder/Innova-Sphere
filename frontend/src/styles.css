@@ -1049,13 +1049,20 @@ button:not(:disabled):active {
   .nav-links {
     order: 3;
     width: 100%;
-    justify-content: flex-start;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    justify-content: stretch;
     padding-bottom: 4px;
+    margin-top: 2px;
+    overflow: visible;
   }
 
   .nav-link {
-    flex: 0 0 auto;
+    width: 100%;
+    min-width: 0;
     white-space: nowrap;
+    padding: 8px 10px;
   }
 
   .nav-user {
@@ -1115,6 +1122,23 @@ button:not(:disabled):active {
     right: 12px;
     left: 12px;
     max-width: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .nav-links {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .nav-link {
+    font-size: 12px;
+    padding: 8px 8px;
+  }
+
+  .nav-user {
+    width: 100%;
+    justify-content: space-between;
+    margin-left: 0;
   }
 }
 
