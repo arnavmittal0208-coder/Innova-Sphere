@@ -848,13 +848,30 @@ app.patch("/users/:id", authMiddleware, async (req: AuthRequest, res) => {
     githubMetrics?: { commits?: number; pullRequests?: number; repos?: number; consistency?: number };
   };
 
+  const hasSkillsChanged =
+    payload.skills !== undefined &&
+    JSON.stringify(payload.skills) !== JSON.stringify(user.skills);
+  const hasPreferredRolesChanged =
+    payload.preferredRoles !== undefined &&
+    JSON.stringify(payload.preferredRoles) !== JSON.stringify(user.preferredRoles);
+  const hasInterestsChanged =
+    payload.interests !== undefined &&
+    JSON.stringify(payload.interests) !== JSON.stringify(user.interests);
+  const hasHackathonHistoryChanged =
+    payload.hackathonHistory !== undefined &&
+    JSON.stringify(payload.hackathonHistory) !== JSON.stringify(user.hackathonHistory);
+  const hasExperienceLevelChanged =
+    payload.experienceLevel !== undefined && payload.experienceLevel !== user.experienceLevel;
+  const hasGithubUrlChanged =
+    payload.githubUrl !== undefined && payload.githubUrl !== user.githubUrl;
+
   const updatesRankCritical =
-    payload.skills !== undefined ||
-    payload.preferredRoles !== undefined ||
-    payload.interests !== undefined ||
-    payload.hackathonHistory !== undefined ||
-    payload.experienceLevel !== undefined ||
-    payload.githubUrl !== undefined;
+    hasSkillsChanged ||
+    hasPreferredRolesChanged ||
+    hasInterestsChanged ||
+    hasHackathonHistoryChanged ||
+    hasExperienceLevelChanged ||
+    hasGithubUrlChanged;
 
   if (updatesRankCritical && !canEditRankCriticalFields(user)) {
     return res.status(429).json({
