@@ -30,6 +30,18 @@ app.use(
 );
 app.use(express.json());
 
+app.get("/", (_req, res) => {
+  res.status(200).json({
+    name: "DevMatch backend",
+    status: "ok",
+    message: "Backend is running"
+  });
+});
+
+app.get("/health", (_req, res) => {
+  res.status(200).json({ status: "ok" });
+});
+
 const jwtSecret = process.env.JWT_SECRET ?? "change_me_in_production";
 const maxTeamSize = 5;
 const githubToken = process.env.GITHUB_TOKEN?.trim() ?? "";
