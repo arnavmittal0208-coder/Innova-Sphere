@@ -708,6 +708,74 @@ nav {
   margin-bottom: 10px;
 }
 
+.friend-deck-layout {
+  display: grid;
+  grid-template-columns: minmax(190px, 250px) minmax(340px, 420px) minmax(190px, 250px);
+  gap: 14px;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.friend-deck-center {
+  z-index: 5;
+}
+
+.friend-side-card {
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(165deg, rgba(22, 22, 30, 0.92), rgba(14, 14, 22, 0.98));
+  padding: 16px;
+  min-height: 248px;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.28);
+  opacity: 0.88;
+}
+
+.friend-side-card-left {
+  transform: translateX(14px) scale(0.92);
+  z-index: 2;
+}
+
+.friend-side-card-right {
+  transform: translateX(-14px) scale(0.92);
+  z-index: 2;
+}
+
+.friend-side-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--accent3);
+  margin-bottom: 10px;
+}
+
+.friend-side-name {
+  font-family: var(--font-head);
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.friend-side-sub {
+  font-size: 12px;
+  color: var(--text2);
+  margin-bottom: 10px;
+}
+
+.friend-side-note {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text2);
+  margin-bottom: 12px;
+}
+
+.friend-side-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .teammate-deck {
   position: relative;
   width: min(100%, 420px);
@@ -1304,6 +1372,17 @@ button:not(:disabled):active {
   .teammate-deck {
     width: min(100%, 360px);
     height: 490px;
+  }
+
+  .friend-deck-layout {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .friend-side-card-left,
+  .friend-side-card-right {
+    transform: none;
+    opacity: 1;
   }
 
   .teammate-deck-card {
