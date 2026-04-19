@@ -913,16 +913,18 @@ export function App() {
       } catch {
         // ignore storage failures
       }
-      await loadMe(data.token);
-      await Promise.all([
+      setPage("dashboard");
+      pushEvent("auth.login.success");
+      showNotif("Logged in successfully", "success");
+
+      // Warm user-specific sections in the background without blocking navigation.
+      void Promise.allSettled([
+        loadMe(data.token),
         loadRankedOpenTeams(data.user._id),
         loadIncomingJoinRequests(data.user._id),
         loadSentJoinRequests(data.user._id),
         loadIncomingTeamInvites(data.user._id)
       ]);
-      setPage("dashboard");
-      pushEvent("auth.login.success");
-      showNotif("Logged in successfully", "success");
     });
   };
 
@@ -1905,7 +1907,7 @@ export function App() {
                   type="password"
                 />
               </div>
-              <button className="btn-primary" type="submit" disabled={isBusy}>Login to DevMatch</button>
+              <button className="btn-primary" type="submit" disabled={isBusy}>{isBusy ? "Logging in..." : "Login to DevMatch"}</button>
             </form>
           )}
 
@@ -1987,7 +1989,7 @@ export function App() {
                 <label>Bio</label>
                 <textarea value={signupBio} onChange={(e) => setSignupBio(e.target.value)} placeholder="Tell teams what makes you awesome..." />
               </div>
-              <button className="btn-primary" onClick={doSignup} disabled={isBusy}>Create My Profile</button>
+              <button className="btn-primary" onClick={doSignup} disabled={isBusy}>{isBusy ? "Creating profile..." : "Create My Profile"}</button>
             </div>
           )}
 
