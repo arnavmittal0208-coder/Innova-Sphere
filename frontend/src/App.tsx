@@ -2186,7 +2186,7 @@ export function App() {
             <div style={{ display: "flex", gap: 8 }}>
               <button className="btn-secondary" onClick={() => setShowCreateTeamModal(true)}>+ Create Team</button>
               {myTeams.length === 0 && (
-                <button className="btn-sm btn-accent" onClick={() => setShowJoinModal(true)}>Join a Team</button>
+                <button className="btn-secondary" onClick={() => setShowJoinModal(true)}>Join a Team</button>
               )}
               <button
                 className={`btn-secondary ${page === "hackathons" && hackathonsView === "teams" ? "active" : ""}`}
@@ -2276,46 +2276,28 @@ export function App() {
                 </span>
               </div>
               <p className="text-muted" style={{ marginBottom: 16 }}>
-                Teams created by users. Pick one and view details or request to join.
+                Teams ranked by match percentage. Pick one and view details or request to join.
               </p>
 
           <div className="hackathons-grid">
-            {teams.map((team) => (
-              <div className={`hack-card ${team.createdBy === currentUser._id ? "hack-card-owner" : ""}`} key={team._id}>
-                <span className={`hack-badge ${team.status === "open" ? "badge-open" : "badge-soon"}`}>{team.status}</span>
-                <div className="hack-name">{team.name}</div>
-                <div className="hack-meta"><span className="open-team-hackathon">{team.hackathon}</span> | Members: {team.members.length} / {team.maxMembers ?? 5}</div>
+            {rankedOpenTeams.map((team) => (
+              <div className="hack-card" key={team.teamId}>
+                <span className="hack-badge badge-open">Match</span>
+                <div className="hack-name">{team.teamName}</div>
+                <div className="hack-meta"><span className="open-team-hackathon">{team.hackathon}</span></div>
+                <div className="hack-meta">Roles needed: {team.requiredRoles?.length ? team.requiredRoles.join(", ") : "Not specified"}</div>
+                <div className="hack-meta" style={{ color: "var(--gold)", fontWeight: 600, marginTop: 10, marginBottom: 10 }}>{team.matchPercent}% match</div>
                 <div className="hack-actions">
-                  {team.createdBy === currentUser._id ? (
-                    <>
-                      <button
-                        className="btn-sm btn-accent"
-                        onClick={() => void openTeamWorkspace(team._id)}
-                      >
-                        Open Team
-                      </button>
-                      <button
-                        className="btn-sm btn-outline"
-                        onClick={() => void updateTeamStatus(team._id, "closed")}
-                        style={{ color: "var(--rose)", borderColor: "rgba(244,63,94,0.3)" }}
-                      >
-                        Close Team
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button className="btn-sm btn-accent" onClick={() => void joinTeamById(team._id)}>
-                        Join Team
-                      </button>
-                      <button className="btn-sm btn-outline" onClick={() => void openTeamWorkspace(team._id)}>
-                        Team Detail
-                      </button>
-                    </>
-                  )}
+                  <button className="btn-sm btn-accent" onClick={() => void joinTeamById(team.teamId)}>
+                    Join Team
+                  </button>
+                  <button className="btn-sm btn-outline" onClick={() => void openTeamWorkspace(team.teamId)}>
+                    Team Detail
+                  </button>
                 </div>
               </div>
             ))}
-            {!teams.length && <div className="ghost-row">No teams yet. Create your first team.</div>}
+            {!rankedOpenTeams.length && <div className="ghost-row">No ranked teams available. Create a profile to see team matches.</div>}
           </div>
 
               <hr className="divider" />
