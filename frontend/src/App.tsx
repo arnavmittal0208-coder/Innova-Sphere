@@ -1291,12 +1291,13 @@ export function App() {
 
   const joinTeamById = async (teamId: string) => {
     if (!jwtToken) return;
-    showNotif("Join request sent", "success");
-    void withError(async () => {
+    showNotif("Sending request...", "success");
+    try {
       await request(`/teams/${teamId}/join-requests`, {
         method: "POST",
         headers: authHeaders
       });
+      showNotif("Request sent", "success");
       // Load data in the background without waiting
       if (currentUser?._id) {
         void Promise.all([loadRankedOpenTeams(currentUser._id), loadSentJoinRequests(currentUser._id)]);
@@ -1305,23 +1306,30 @@ export function App() {
         void loadJoinRequests(teamId);
       }
       void loadOpenTeams();
-    });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Request failed";
+      showNotif(message, "error");
+    }
   };
 
   const joinSelectedTeam = async () => {
     if (!selectedTeam || !jwtToken) return;
-    showNotif("Join request sent", "success");
-    void withError(async () => {
+    showNotif("Sending request...", "success");
+    try {
       await request(`/teams/${selectedTeam}/join-requests`, {
         method: "POST",
         headers: authHeaders
       });
+      showNotif("Request sent", "success");
       // Load data in the background without waiting
       void loadJoinRequests(selectedTeam);
       if (currentUser?._id) {
         void Promise.all([loadRankedOpenTeams(currentUser._id), loadSentJoinRequests(currentUser._id)]);
       }
-    });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Request failed";
+      showNotif(message, "error");
+    }
   };
 
   const updateRequest = async (requestId: string, status: "accepted" | "declined") => {
