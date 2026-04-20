@@ -1296,14 +1296,15 @@ export function App() {
         method: "POST",
         headers: authHeaders
       });
+      showNotif("Join request sent", "success");
+      // Load data in the background without waiting
       if (currentUser?._id) {
-        await Promise.all([loadRankedOpenTeams(currentUser._id), loadSentJoinRequests(currentUser._id)]);
+        void Promise.all([loadRankedOpenTeams(currentUser._id), loadSentJoinRequests(currentUser._id)]);
       }
       if (selectedTeam === teamId) {
-        await loadJoinRequests(teamId);
+        void loadJoinRequests(teamId);
       }
-      await loadOpenTeams();
-      showNotif("Join request sent", "success");
+      void loadOpenTeams();
     });
   };
 
@@ -1314,9 +1315,11 @@ export function App() {
         method: "POST",
         headers: authHeaders
       });
-      await loadJoinRequests(selectedTeam);
+      showNotif("Join request sent", "success");
+      // Load data in the background without waiting
+      void loadJoinRequests(selectedTeam);
       if (currentUser?._id) {
-        await Promise.all([loadRankedOpenTeams(currentUser._id), loadSentJoinRequests(currentUser._id)]);
+        void Promise.all([loadRankedOpenTeams(currentUser._id), loadSentJoinRequests(currentUser._id)]);
       }
       showNotif("Join request sent", "success");
     });
